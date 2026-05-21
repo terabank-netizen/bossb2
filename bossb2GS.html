@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <title>L2M Boss Timer</title>
+
+  <style>
+
+    body {
+
+      background: #111;
+      color: white;
+
+      font-family: Arial, sans-serif;
+
+      padding: 20px;
+
+    }
+
+    h1 {
+
+      text-align: center;
+
+      color: gold;
+
+      margin-bottom: 20px;
+
+    }
+
+    /* ========================= */
+    /* NEXT BOSS */
+    /* ========================= */
+
+    .next-boss {
+
+      background: linear-gradient(
+        135deg,
+        #2b1800,
+        #4d2f00
+      );
+
+      border: 2px solid gold;
+
+      border-radius: 12px;
+
+      padding: 20px;
+
+      margin-bottom: 25px;
+
+      text-align: center;
+
+      box-shadow:
+        0 0 20px rgba(255,215,0,0.3);
+
+    }
+
+    .next-title {
+
+      color: gold;
+
+      font-size: 18px;
+
+      margin-bottom: 10px;
+
+      font-weight: bold;
+
+    }
+
+    .next-name {
+
+      font-size: 32px;
+
+      font-weight: bold;
+
+      color: white;
+
+      margin-bottom: 10px;
+
+    }
+
+    .next-time {
+
+      font-size: 26px;
+
+      font-weight: bold;
+
+    }
+
+    /* ========================= */
+    /* TABLE */
+    /* ========================= */
+
+    table {
+
+      width: 100%;
+
+      border-collapse: collapse;
+
+      background: #1b1b1b;
+
+    }
+
+    th, td {
+
+      border: 1px solid #333;
+
+      padding: 12px;
+
+      text-align: center;
+
+    }
+
+    th {
+
+      background: #222;
+
+      color: gold;
+
+    }
+
+    tr:hover {
+
+      background: #2a2a2a;
+
+    }
+
+    .boss-name {
+
+      font-size: 18px;
+
+      font-weight: bold;
+
+      color: white;
+
+    }
+
+    .countdown {
+
+      margin-top: 5px;
+
+      font-size: 14px;
+
+      font-weight: bold;
+
+    }
+
+    /* ========================= */
+    /* BLINK */
+    /* ========================= */
+
+    @keyframes blink {
+
+      0% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0;
+      }
+
+      100% {
+        opacity: 1;
+      }
+
+    }
+
+    .blink {
+
+      animation: blink 1s infinite;
+
+      color: red !important;
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <h1>🔥 Lineage 2M Boss Timer</h1>
+
+
+  <!-- ========================= -->
+  <!-- NEXT BOSS -->
+  <!-- ========================= -->
+
+  <div class="next-boss">
+
+    <div class="next-title">
+
+      NEXT BOSS
+
+    </div>
+
+    <div class="next-name"
+         id="nextBossName">
+
+      Loading...
+
+    </div>
+
+    <div class="next-time"
+         id="nextBossTime">
+
+      00:00:00
+
+    </div>
+
+  </div>
+
+
+  <!-- ========================= -->
+  <!-- TABLE -->
+  <!-- ========================= -->
+
+  <table>
+
+    <thead>
+
+      <tr>
+
+        <th>Boss</th>
+
+        <th>Spawn Time</th>
+
+        <th>Interval</th>
+
+        <th>Chance</th>
+
+      </tr>
+
+    </thead>
+
+    <tbody id="bossTable"></tbody>
+
+  </table>
+
+
+<script>
+
+  // =========================
+  // GOOGLE SHEET
+  // =========================
+
+  const sheetID =
+  '1NzgxFXwRbNBH3nA9u4fE4AAAlEvhts7iHjj-l4g1VG0';
+
+  const sheetName =
+  'Sheet1';
+
+  const url =
+  `https://opensheet.elk.sh/${sheetID}/${sheetName}`;
+
+
+  // =========================
+  // DATA
+  // =========================
+
+  let bossesData = [];
+
+
+  // =========================
+  // LOAD SHEET
+  // =========================
+
+  async function loadBosses() {
+
+    try {
+
+      const response =
+        await fetch(url);
+
+      bossesData =
+        await response.json();
+
+    }
+
+    catch(error) {
+
+      console.log(error);
+
+    }
+
+  }
+
+
+  // =========================
+  // COUNTDOWN
+  // =========================
+
+  function getCountdown(targetTime) {
+
+    const now = new Date();
+
+    const [hours, minutes] =
+      targetTime.split(':').map(Number);
+
+    let target = new Date();
+
+    // เพิ่ม 30 วินาที
+    target.setHours(
+      hours,
+      minutes,
+      30,
+      0
+    );
+
+    // ถ้าเวลาเลยแล้ว
+    // ให้เป็นวันถัดไป
+
+    if (target < now) {
+
+      target.setDate(
+        target.getDate() + 1
+      );
+
+    }
+
+    // ค้างสถานะเกิด 10 วิ
+
+    const diff =
+      target - now + 10000;
+
+    const h =
+      Math.floor(diff / (1000 * 60 * 60));
+
+    const m =
+      Math.floor(
+        (diff % (1000 * 60 * 60))
+        / (1000 * 60)
+      );
+
+    const s =
+      Math.floor(
+        (diff % (1000 * 60))
+        / 1000
+      );
+
+    return {
+
+      totalMinutes:
+        Math.floor(diff / 60000),
+
+      text:
+        String(h).padStart(2, '0')
+        + ':' +
+        String(m).padStart(2, '0')
+        + ':' +
+        String(s).padStart(2, '0')
+
+    };
+
+  }
+
+
+  // =========================
+  // RENDER
+  // =========================
+
+  function renderBosses() {
+
+    const table =
+      document.getElementById(
+        'bossTable'
+      );
+
+    table.innerHTML = '';
+
+
+
+    // =========================
+    // SORT
+    // =========================
+
+    bossesData.sort((a, b) => {
+
+      const timeA =
+        getCountdown(
+          a['Spawn time']
+        ).totalMinutes;
+
+      const timeB =
+        getCountdown(
+          b['Spawn time']
+        ).totalMinutes;
+
+      return timeA - timeB;
+
+    });
+
+
+
+    // =========================
+    // NEXT BOSS
+    // =========================
+
+    const nextBoss =
+      bossesData[0];
+
+    const nextCountdown =
+      getCountdown(
+        nextBoss['Spawn time']
+      );
+
+    let nextColor = 'lime';
+
+    if (
+      nextCountdown.totalMinutes <= 30
+    ) {
+
+      nextColor = 'red';
+
+    }
+
+    else if (
+      nextCountdown.totalMinutes <= 60
+    ) {
+
+      nextColor = 'orange';
+
+    }
+
+
+
+    const nextBossNameElement =
+      document.getElementById(
+        'nextBossName'
+      );
+
+    nextBossNameElement.innerText =
+      nextBoss.Boss;
+
+
+    // กระพริบเฉพาะหัวข้อใหญ่
+
+    const isBlinking =
+      nextCountdown.totalMinutes === 0
+      &&
+      nextCountdown.text.startsWith(
+        '00:00'
+      );
+
+    if (isBlinking) {
+
+      nextBossNameElement.classList.add(
+        'blink'
+      );
+
+    }
+
+    else {
+
+      nextBossNameElement.classList.remove(
+        'blink'
+      );
+
+    }
+
+
+
+    document.getElementById(
+      'nextBossTime'
+    ).innerText =
+      nextCountdown.text;
+
+    document.getElementById(
+      'nextBossTime'
+    ).style.color =
+      nextColor;
+
+
+
+    // =========================
+    // TABLE
+    // =========================
+
+    bossesData.forEach(boss => {
+
+      const countdown =
+        getCountdown(
+          boss['Spawn time']
+        );
+
+      let color = 'lime';
+
+
+      // ใกล้เกิด
+
+      if (
+        countdown.totalMinutes <= 30
+      ) {
+
+        color = 'red';
+
+      }
+
+      else if (
+        countdown.totalMinutes <= 60
+      ) {
+
+        color = 'orange';
+
+      }
+
+
+
+      const row = `
+
+        <tr>
+
+          <td>
+
+            <div class="boss-name">
+
+              ${boss.Boss}
+
+            </div>
+
+            <div class="countdown"
+                 style="color:${color};">
+
+              ⏳ ${countdown.text}
+
+            </div>
+
+          </td>
+
+          <td>
+
+            ${boss['Spawn time']}
+
+          </td>
+
+          <td>
+
+            ${boss.interval}
+
+          </td>
+
+          <td>
+
+            ${boss.Chance}
+
+          </td>
+
+        </tr>
+
+      `;
+
+      table.innerHTML += row;
+
+    });
+
+  }
+
+
+  // =========================
+  // START
+  // =========================
+
+  async function start() {
+
+    await loadBosses();
+
+    renderBosses();
+
+    // realtime countdown
+    setInterval(renderBosses, 1000);
+
+    // reload sheet ทุก 30 วิ
+    setInterval(loadBosses, 30000);
+
+  }
+
+  start();
+
+</script>
+
+</body>
+</html>
